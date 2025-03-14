@@ -7,12 +7,25 @@ const messages = ref([]);
 
 export function useSocket(nickname, inputMessage = ref('')) {
   const isLoggedIn = ref(false);
+  const selectedAvatar = ref('/path/to/default/avatar.jpg'); // 默认头像路径
 
   const joinChatroom = () => {
-    if (nickname.value) {
-      socket.emit('join', nickname.value);
-      isLoggedIn.value = true;
-    }
+    return new Promise((resolve, reject) => {
+      if (!nickname.value) {
+        nickname.value = generateRandomNickname();
+      }
+      socket.emit('join', { nickname: nickname.value, avatar: selectedAvatar.value }, (response) => {
+        if (response.success) {
+          nickname.value = response.nickname; // 更新为唯一昵称
+          isLoggedIn.value = true;
+          console.log('Joined chatroom successfully'); // 调试信息
+          resolve();
+        } else {
+          console.log('Failed to join chatroom'); // 调试信息
+          reject();
+        }
+      });
+    });
   };
 
   const sendMessage = () => {
@@ -20,10 +33,10 @@ export function useSocket(nickname, inputMessage = ref('')) {
       const message = {
         type: 'text',
         sender: nickname.value,
+        avatar: selectedAvatar.value,
         content: inputMessage.value
       };
       socket.emit('send-message', message);
-      messages.value.push(message);
       inputMessage.value = '';
       scrollToBottom();
     }
@@ -35,10 +48,10 @@ export function useSocket(nickname, inputMessage = ref('')) {
       const imageData = {
         type: 'image',
         sender: nickname.value,
+        avatar: selectedAvatar.value,
         content: reader.result
       };
       socket.emit('send-image', imageData);
-      messages.value.push(imageData);
       scrollToBottom();
     };
     reader.readAsDataURL(file.file);
@@ -51,22 +64,34 @@ export function useSocket(nickname, inputMessage = ref('')) {
     }
   };
 
+  const generateRandomNickname = () => {
+    const adjectives = ['快乐的', '悲伤的', '愤怒的', '兴奋的', '勇敢的'];
+    const animals = ['猫', '狗', '兔子', '老虎', '狮子'];
+    const adjective = adjectives[Math.floor(Math.random() * adjectives.length)];
+    const animal = animals[Math.floor(Math.random() * animals.length)];
+    return `${adjective}${animal}`;
+  };
+
   socket.on('room-full', () => {
     alert('聊天室已满，请稍后再试');
   });
 
-  socket.on('user-joined', (user) => {
+  socket.on('user-joined', (message) => {
     messages.value.push({
       type: 'system',
-      content: `${user.nickname} 加入了聊天室`
+      content: message
     });
     scrollToBottom();
   });
 
-  socket.on('user-left', (user) => {
+  socket.on('user-left', (nickname) => {
+    const index = onlineUsers.value.findIndex(u => u.nickname === nickname);
+    if (index !== -1) {
+      onlineUsers.value.splice(index, 1);
+    }
     messages.value.push({
       type: 'system',
-      content: `${user.nickname} 离开了聊天室`
+      content: `${nickname} 离开了聊天室`
     });
     scrollToBottom();
   });
@@ -85,6 +110,10 @@ export function useSocket(nickname, inputMessage = ref('')) {
     scrollToBottom();
   });
 
+  window.addEventListener('beforeunload', () => {
+    socket.emit('leave', { nickname: nickname.value });
+  });
+
   return {
     isLoggedIn,
     onlineUsers,
@@ -92,6 +121,7 @@ export function useSocket(nickname, inputMessage = ref('')) {
     joinChatroom,
     sendMessage,
     handleImageUpload,
-    scrollToBottom
+    scrollToBottom,
+    selectedAvatar
   };
 }

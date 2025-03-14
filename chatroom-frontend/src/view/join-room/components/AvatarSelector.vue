@@ -10,18 +10,21 @@
         @select="onSelect"
       />
     </van-popup>
+    <input type="file" ref="fileInput" @change="onFileChange" accept="image/*" style="display: none;" />
   </div>
 </template>
 
 <script setup>
-import { ref, provide } from 'vue';
+import { ref, inject } from 'vue';
 
-const selectedAvatar = ref('/onlineChat1.jpg');
+const selectedAvatar = inject('selectedAvatar');
 const showOptions = ref(false);
+const fileInput = ref(null);
 
 const actions = [
   { name: '选择素材库', method: 'selectFromLibrary' },
-  { name: '上传照片或拍照', method: 'uploadPhoto' }
+  { name: '上传照片', method: 'uploadPhoto' },
+  { name: '拍照', method: 'takePhoto' }
 ];
 
 function onSelect(action) {
@@ -30,16 +33,26 @@ function onSelect(action) {
     showLibrary.value = true;
   } else if (action.method === 'uploadPhoto') {
     showOptions.value = false;
-    showUploader.value = true;
+    fileInput.value.click();
+  } else if (action.method === 'takePhoto') {
+    showOptions.value = false;
+    showCamera.value = true;
   }
 }
 
-const showLibrary = ref(false);
-const showUploader = ref(false);
+function onFileChange(event) {
+  const file = event.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      selectedAvatar.value = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+}
 
-provide('selectedAvatar', selectedAvatar);
-provide('showLibrary', showLibrary);
-provide('showUploader', showUploader);
+const showLibrary = inject('showLibrary');
+const showCamera = inject('showCamera');
 </script>
 
 <style scoped>

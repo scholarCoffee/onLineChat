@@ -1,10 +1,9 @@
 <template>
   <van-popup v-model:show="showLibrary" position="bottom">
     <div class="default-avatars">
-      <span>选择一个默认头像:</span>
       <div class="avatars">
         <img
-          v-for="(avatar, index) in defaultAvatars"
+          v-for="(avatar, index) in shuffledAvatars"
           :key="index"
           :src="avatar"
           alt="默认头像"
@@ -21,20 +20,17 @@ import { ref, inject } from 'vue';
 
 const selectedAvatar = inject('selectedAvatar');
 const showLibrary = inject('showLibrary');
+const defaultAvatars = inject('defaultAvatars');
 
-// 将 public 目录下的图片路径添加到 defaultAvatars 数组中，并按顺序排列
-const defaultAvatars = [
-  '/onlineChat1.jpg',
-  '/onlineChat2.jpg',
-  '/onlineChat3.jpg',
-  '/onlineChat4.jpg',
-  '/onlineChat5.jpg',
-  '/onlineChat6.jpg',
-  '/onlineChat7.jpg',
-  '/onlineChat8.jpg',
-  '/onlineChat9.jpg',
-  '/onlineChat10.jpg'
-];
+const shuffledAvatars = ref(shuffleArray([...defaultAvatars]));
+
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
 
 function selectDefaultAvatar(avatar) {
   selectedAvatar.value = avatar;

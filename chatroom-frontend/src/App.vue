@@ -1,17 +1,10 @@
 <template>
   <div id="app">
-    <JoinChatroom v-if="!isLoggedIn" />
-    <Chatroom v-else />
+    <router-view />
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import JoinChatroom from './view/join-room/index.vue';
-import Chatroom from './view/chat-room/index.vue';
-import { useSocket } from './utils/composables/socket';
-
-const { isLoggedIn } = useSocket(ref(''));
 </script>
 
 <style scoped>

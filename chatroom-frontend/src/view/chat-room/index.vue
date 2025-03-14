@@ -1,10 +1,10 @@
 <template>
   <div class="chatroom">
-    <van-nav-bar
-      title="聊天室 ({{ onlineUsers.length }}/{{ MAX_USERS }})"
-      right-text="更多"
-      @click-right="showMemberList = true"
-    />
+    <van-nav-bar :title="`聊天室 (${onlineUsers.length}/${MAX_USERS})`">
+      <template #right>
+        <van-icon name="ellipsis" size="18" @click="goToOnlineUsersPage" />
+      </template>
+    </van-nav-bar>
     <van-popup v-model:show="showMemberList" position="right">
       <van-cell-group>
         <van-cell v-for="user in onlineUsers" :key="user.id" :title="user.nickname" />
@@ -18,15 +18,22 @@
         <div v-else class="user-message">
           <div v-if="message.sender === nickname" class="self-message">
             <div class="message-bubble">
-              <div v-if="message.type === 'text'">{{ message.content }}</div>
-              <img v-else :src="message.content" alt="图片" />
+              <img :src="message.avatar" class="avatar" />
+              <div class="message-content">
+                <div class="message-sender">{{ message.sender }}</div>
+                <div v-if="message.type === 'text'">{{ message.content }}</div>
+                <img v-else :src="message.content" alt="图片" />
+              </div>
             </div>
           </div>
           <div v-else class="other-message">
-            <div class="message-sender">{{ message.sender }}</div>
             <div class="message-bubble">
-              <div v-if="message.type === 'text'">{{ message.content }}</div>
-              <img v-else :src="message.content" alt="图片" />
+              <img :src="message.avatar" class="avatar" />
+              <div class="message-content">
+                <div class="message-sender">{{ message.sender }}</div>
+                <div v-if="message.type === 'text'">{{ message.content }}</div>
+                <img v-else :src="message.content" alt="图片" />
+              </div>
             </div>
           </div>
         </div>
@@ -37,12 +44,11 @@
         v-model="inputMessage"
         placeholder="请输入消息"
       />
-      <van-uploader
-        :after-read="handleImageUpload"
-        accept="image/*"
-        :max-count="1"
-        multiple
-        style="display: inline-block; margin-left: 10px;"
+      <van-icon name="plus" size="24" @click="showActionSheet = true" />
+      <van-action-sheet
+        v-model:show="showActionSheet"
+        :actions="actions"
+        @select="onSelectAction"
       />
       <van-button type="primary" @click="sendMessage">发送</van-button>
     </div>
@@ -51,12 +57,36 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { useSocket } from '../../utils/composables/socket';
 
 const nickname = ref('');
 const inputMessage = ref('');
 const showMemberList = ref(false);
-const { onlineUsers, messages, sendMessage, handleImageUpload, scrollToBottom } = useSocket(nickname, inputMessage);
+const showActionSheet = ref(false);
+const showCamera = ref(false);
+const MAX_USERS = 50;
+const router = useRouter();
+const { onlineUsers, messages, sendMessage, scrollToBottom } = useSocket(nickname, inputMessage);
+
+const actions = [
+  { name: '选择照片', method: 'selectPhoto' },
+  { name: '拍摄相机', method: 'takePhoto' }
+];
+
+const onSelectAction = (action) => {
+  if (action.method === 'selectPhoto') {
+    // 触发文件选择器
+    document.getElementById('fileInput').click();
+  } else if (action.method === 'takePhoto') {
+    // 触发拍摄相机
+    showCamera.value = true;
+  }
+};
+
+const goToOnlineUsersPage = () => {
+  router.push('/online-users');
+};
 
 onMounted(() => {
   scrollToBottom();
@@ -68,12 +98,14 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  width: 100vw;
 }
 
 .chat-container {
   flex: 1;
   overflow-y: auto;
   padding: 10px;
+  width: 100%;
 }
 
 .system-message {
@@ -101,7 +133,8 @@ onMounted(() => {
 }
 
 .message-bubble {
-  display: inline-block;
+  display: flex;
+  align-items: center;
   max-width: 80%;
   padding: 10px;
   border-radius: 10px;
@@ -113,15 +146,33 @@ onMounted(() => {
   background-color: #dcf8c6;
 }
 
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  margin-right: 10px;
+}
+
+.message-content {
+  display: flex;
+  flex-direction: column;
+}
+
 .input-container {
   display: flex;
   align-items: center;
   padding: 10px;
   border-top: 1px solid #eee;
+  width: 100%;
+  background-color: #fff; /* 添加背景色 */
 }
 
 .input-container .van-field {
   flex: 1;
   margin-right: 10px;
+}
+
+.input-container .van-button {
+  margin-left: 10px; /* 添加间距 */
 }
 </style>

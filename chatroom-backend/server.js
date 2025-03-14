@@ -21,11 +21,18 @@ io.on('connection', (socket) => {
         return;
     }
 
-    socket.on('join', (nickname) => {
-        const user = { id: socket.id, nickname };
+    socket.on('join', (userInfo, callback) => {
+        const { nickname, avatar } = userInfo || {}
+        let index = 1;
+        while (onlineUsers.some(user => user.nickname === nickname)) {
+            nickname = `${nickname}${index}`;
+            index++;
+        }
+        const user = { id: socket.id, nickname: nickname, avatar };
         onlineUsers.push(user);
-        io.emit('user-joined', user);
+        io.emit('user-joined', `${nickname} 加入了聊天室`);
         io.emit('online-users', onlineUsers);
+        callback({ success: true, nickname });
     });
 
     socket.on('send-message', (message) => {
@@ -38,9 +45,9 @@ io.on('connection', (socket) => {
 
     socket.on('disconnect', () => {
         const index = onlineUsers.findIndex(user => user.id === socket.id);
-        if (index!== -1) {
+        if (index !== -1) {
             const disconnectedUser = onlineUsers.splice(index, 1)[0];
-            io.emit('user-left', disconnectedUser);
+            io.emit('user-left', disconnectedUser.nickname);
             io.emit('online-users', onlineUsers);
         }
     });
