@@ -16,7 +16,7 @@
               <div class="message-content">
                 <div class="message-sender">{{ message.sender }}</div>
                 <div v-if="message.type === 'text'">{{ message.content }}</div>
-                <img v-else :src="message.content" alt="图片" />
+                <img v-else :src="message.content" alt="图片" class="message-image" />
               </div>
               <img :src="message.avatar" class="avatar" />
             </div>
@@ -27,7 +27,7 @@
               <div class="message-content">
                 <div class="message-sender">{{ message.sender }}</div>
                 <div v-if="message.type === 'text'">{{ message.content }}</div>
-                <img v-else :src="message.content" alt="图片" />
+                <img v-else :src="message.content" alt="图片" class="message-image"/>
               </div>
             </div>
           </div>
@@ -39,14 +39,15 @@
         v-model="inputMessage"
         placeholder="请输入消息"
       />
-      <!-- <van-icon name="plus" size="24" @click="showActionSheet = true" /> -->
       <van-action-sheet
         v-model:show="showActionSheet"
         :actions="actions"
         @select="onSelectAction"
       />
-      <van-button type="primary" @click="onSendMsg">发送</van-button>
+      <van-button type="primary" @click="onSendMsg" class="send-button">发送</van-button>
+      <van-icon name="add" color="#409eff" size="24" @click="showActionSheet = true" />
     </div>
+    <input type="file" id="fileInput" @change="onFileChange" accept="image/*" style="display: none;" />
   </div>
 </template>
 
@@ -59,29 +60,28 @@ import { storeToRefs } from 'pinia';
 
 const inputMessage = ref('');
 const showActionSheet = ref(false);
-const showCamera = ref(false);
 const MAX_USERS = 50;
 const router = useRouter();
 const socket = io('http://localhost:3000');
 const onlineUsersStore = useOnlineUsersStore();
-const { onlineUsers, onlineMessage } = storeToRefs(onlineUsersStore)
-const { removeUser, setOnlineMessage } = onlineUsersStore
+const { onlineUsers, onlineMessage } = storeToRefs(onlineUsersStore);
+const { removeUser, setOnlineMessage } = onlineUsersStore;
 import { userCurrentUserStore } from '../../stores/currentUserStore';
 const currentUserInfoStore = userCurrentUserStore();
-const { currentUserInfo } = storeToRefs(currentUserInfoStore)
+const { currentUserInfo } = storeToRefs(currentUserInfoStore);
 
 const actions = [
-  { name: '选择照片', method: 'selectPhoto' },
-  { name: '拍摄相机', method: 'takePhoto' }
+  { name: '选择照片', method: 'selectPhoto' }
 ];
 
-const sendMessage = (content) => {
+const sendMessage = (content, type = 'text') => {
   if (content && currentUserInfo.value.nickname) {
     const message = {
-      type: 'text',
+      type,
       sender: currentUserInfo.value.nickname,
       avatar: currentUserInfo.value.avatar,
-      content
+      content,
+      msgDate: new Date().toLocaleString()
     };
     socket.emit('send-message', message);
   }
@@ -97,7 +97,10 @@ const onSendMsg = () => {
 const onSelectAction = (action) => {
   if (action.method === 'selectPhoto') {
     // 触发文件选择器
-    document.getElementById('fileInput').click();
+    const fileInput = document.getElementById('fileInput');
+    if (fileInput) {
+      fileInput.click();
+    }
   } else if (action.method === 'takePhoto') {
     // 触发拍摄相机
     showCamera.value = true;
@@ -114,6 +117,18 @@ const scrollToBottom = () => {
     chatContainer.scrollTop = chatContainer.scrollHeight;
   }
 };
+
+function onFileChange(event) {
+  const file = event.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      sendMessage(e.target.result, 'image');
+      showActionSheet.value = false
+    };
+    reader.readAsDataURL(file);
+  }
+}
 
 onMounted(() => {
   socket.on('room-full', () => {
@@ -135,7 +150,7 @@ onMounted(() => {
     onlineMessage.value.push({
       id,
       type: 'system',
-      msgDate:  new Date().toLocaleString(),
+      msgDate: new Date().toLocaleString(),
       content: `${nickname} 加入了聊天室`
     });
     scrollToBottom();
@@ -147,7 +162,7 @@ onMounted(() => {
     onlineMessage.value.push({
       id,
       type: 'system',
-      msgDate:  new Date().toLocaleString(),
+      msgDate: new Date().toLocaleString(),
       content: `${nickname} 离开了聊天室`
     });
     scrollToBottom();
@@ -158,7 +173,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   socket.disconnect();
-  currentUserInfoStore.resetCurrentUserInfo();
+  // currentUserInfoStore.resetCurrentUserInfo();
 });
 </script>
 
@@ -217,6 +232,12 @@ onUnmounted(() => {
     border-radius: 50%;
     margin-left: 10px;
   }
+
+  .message-content {
+    display: flex;
+    flex-direction: column;
+    align-items: end;
+  }
 }
 
 .message-other {
@@ -235,6 +256,11 @@ onUnmounted(() => {
     border-radius: 50%;
     margin-right: 10px;
   }
+
+  .message-content {
+    display: flex;
+    flex-direction: column;
+  }
 }
 
 .self-message .message-bubble {
@@ -248,10 +274,10 @@ onUnmounted(() => {
 }
 
 
-
-.message-content {
-  display: flex;
-  flex-direction: column;
+.message-image {
+  max-width: 50%;
+  max-height: 230px;
+  object-fit: contain; /* 保持图片比例 */
 }
 
 .input-container {
@@ -272,7 +298,11 @@ onUnmounted(() => {
   margin-left: 5px; /* 添加间距 */
   background-color: #409eff; /* 按钮背景色 */
   color: #fff; /* 按钮文字颜色 */
-  border-radius: 5px; /* 按钮圆角 */
+  border-radius: 10px; /* 按钮圆角 */
   padding: 0 15px; /* 按钮内边距 */
+}
+
+.van-icon-add {
+  margin: 0 8px;
 }
 </style>
