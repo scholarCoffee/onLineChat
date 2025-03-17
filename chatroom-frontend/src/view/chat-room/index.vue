@@ -58,7 +58,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { useSocket } from '../../utils/composables/socket';
+import { useSocketStore } from '../../stores/socketStore';
 
 const nickname = ref('');
 const inputMessage = ref('');
@@ -67,7 +67,8 @@ const showActionSheet = ref(false);
 const showCamera = ref(false);
 const MAX_USERS = 50;
 const router = useRouter();
-const { onlineUsers, messages, sendMessage, scrollToBottom } = useSocket(nickname, inputMessage);
+const socketStore = useSocketStore();
+const { onlineUsers, messages, sendMessage, scrollToBottom } = socketStore;
 
 const actions = [
   { name: '选择照片', method: 'selectPhoto' },

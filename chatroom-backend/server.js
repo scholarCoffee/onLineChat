@@ -22,7 +22,7 @@ io.on('connection', (socket) => {
     }
 
     socket.on('join', (userInfo, callback) => {
-        const { nickname, avatar } = userInfo || {}
+        let { nickname, avatar } = userInfo || {}
         let index = 1;
         while (onlineUsers.some(user => user.nickname === nickname)) {
             nickname = `${nickname}${index}`;
@@ -41,16 +41,6 @@ io.on('connection', (socket) => {
 
     socket.on('send-image', (imageData) => {
         io.emit('receive-image', imageData);
-    });
-
-    socket.on('leave', (userInfo) => {
-        const { nickname } = userInfo || {};
-        const index = onlineUsers.findIndex(user => user.nickname === nickname);
-        if (index !== -1) {
-            const leavingUser = onlineUsers.splice(index, 1)[0];
-            socket.broadcast.emit('user-left', leavingUser); // 只广播给其他用户
-            io.emit('online-users', onlineUsers);
-        }
     });
 
     socket.on('disconnect', () => {

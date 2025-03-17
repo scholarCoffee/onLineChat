@@ -3,12 +3,11 @@ import io from 'socket.io-client';
 import { generateRandomNickname } from '../index.js';
 
 const socket = io('http://localhost:3000');
-const onlineUsers = ref([]);
 const messages = ref([]);
+const onlineUsers = ref([]);
 const currentUserInfo = ref({ nickname: '', avatar: '', id: '' });
 
-export function useSocket(inputMessage = ref('')) {
-  const isLoggedIn = ref(false);
+export function useSocket(name, inputMessage = ref('')) {
   const selectedAvatar = ref('/path/to/default/avatar.jpg'); // 默认头像路径
 
   // 加入聊天室
@@ -23,13 +22,13 @@ export function useSocket(inputMessage = ref('')) {
       socket.emit('join', { nickname, avatar: selectedAvatar.value }, (response) => {
         if (response.success) {
           currentUserInfo.value = response.userInfo; // 更新为唯一昵称
-          isLoggedIn.value = true;
           console.log('Joined chatroom successfully'); // 调试信息
           resolve();
         } else {
           console.log('Failed to join chatroom'); // 调试信息
           reject();
         }
+        scrollToBottom();
       });
     });
   };
@@ -84,7 +83,7 @@ export function useSocket(inputMessage = ref('')) {
 
   socket.on('user-left', userInfo => {
     const { id, nickname, avatar } = userInfo || {} 
-    const index = onlineUsers.value.findIndex(u => u.nickname === nickname);
+    const index = onlineUsers.value?.findIndex(u => u.nickname === nickname);
     if (index !== -1) {
       onlineUsers.value.splice(index, 1);
     }
@@ -96,7 +95,7 @@ export function useSocket(inputMessage = ref('')) {
   });
 
   socket.on('online-users', (users) => {
-    onlineUsers.value = users;
+    onlineUsers.value = users || []
   });
 
   socket.on('receive-message', (message) => {
@@ -110,7 +109,6 @@ export function useSocket(inputMessage = ref('')) {
   });
 
   return {
-    isLoggedIn,
     onlineUsers,
     messages,
     joinChatroom,
