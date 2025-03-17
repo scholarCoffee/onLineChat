@@ -1,15 +1,15 @@
 <template>
   <div class="chatroom">
     <van-nav-bar :title="`聊天室 (${onlineUsers.length}/${MAX_USERS})`">
-      <template #right>
+      <!-- <template #right>
         <van-icon name="ellipsis" size="18" @click="goToOnlineUsersPage" />
-      </template>
+      </template> -->
     </van-nav-bar>
-    <van-popup v-model:show="showMemberList" position="right">
+    <!-- <van-popup v-model:show="showMemberList" position="right">
       <van-cell-group>
         <van-cell v-for="user in onlineUsers" :key="user.id" :title="user.nickname" />
       </van-cell-group>
-    </van-popup>
+    </van-popup> -->
     <div class="chat-container">
       <div class="chat-message" v-for="(message, index) in messages" :key="index">
         <div v-if="message.type === 'system'" class="system-message">

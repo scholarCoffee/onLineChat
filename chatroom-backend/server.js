@@ -30,9 +30,9 @@ io.on('connection', (socket) => {
         }
         const user = { id: socket.id, nickname: nickname, avatar };
         onlineUsers.push(user);
-        io.emit('user-joined', `${nickname} 加入了聊天室`);
+        socket.broadcast.emit('user-joined', `${nickname} 加入了聊天室`); // 只广播给其他用户
         io.emit('online-users', onlineUsers);
-        callback({ success: true, nickname });
+        callback({ success: true, userInfo });
     });
 
     socket.on('send-message', (message) => {
@@ -43,11 +43,21 @@ io.on('connection', (socket) => {
         io.emit('receive-image', imageData);
     });
 
+    socket.on('leave', (userInfo) => {
+        const { nickname } = userInfo || {};
+        const index = onlineUsers.findIndex(user => user.nickname === nickname);
+        if (index !== -1) {
+            const leavingUser = onlineUsers.splice(index, 1)[0];
+            socket.broadcast.emit('user-left', leavingUser); // 只广播给其他用户
+            io.emit('online-users', onlineUsers);
+        }
+    });
+
     socket.on('disconnect', () => {
         const index = onlineUsers.findIndex(user => user.id === socket.id);
         if (index !== -1) {
             const disconnectedUser = onlineUsers.splice(index, 1)[0];
-            io.emit('user-left', disconnectedUser.nickname);
+            socket.broadcast.emit('user-left', disconnectedUser); // 只广播给其他用户
             io.emit('online-users', onlineUsers);
         }
     });

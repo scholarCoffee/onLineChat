@@ -1,22 +1,28 @@
 import { ref } from 'vue';
 import io from 'socket.io-client';
+import { generateRandomNickname } from '../index.js';
 
 const socket = io('http://localhost:3000');
 const onlineUsers = ref([]);
 const messages = ref([]);
+const currentUserInfo = ref({ nickname: '', avatar: '', id: '' });
 
-export function useSocket(nickname, inputMessage = ref('')) {
+export function useSocket(inputMessage = ref('')) {
   const isLoggedIn = ref(false);
   const selectedAvatar = ref('/path/to/default/avatar.jpg'); // 默认头像路径
 
-  const joinChatroom = () => {
+  // 加入聊天室
+  const joinChatroom = ({
+    nickname = ref(''),
+    selectedAvatar = ref('/path/to/default/avatar.jpg')
+  }) => {
     return new Promise((resolve, reject) => {
-      if (!nickname.value) {
-        nickname.value = generateRandomNickname();
+      if (!nickname) {
+        nickname = generateRandomNickname();
       }
-      socket.emit('join', { nickname: nickname.value, avatar: selectedAvatar.value }, (response) => {
+      socket.emit('join', { nickname, avatar: selectedAvatar.value }, (response) => {
         if (response.success) {
-          nickname.value = response.nickname; // 更新为唯一昵称
+          currentUserInfo.value = response.userInfo; // 更新为唯一昵称
           isLoggedIn.value = true;
           console.log('Joined chatroom successfully'); // 调试信息
           resolve();
@@ -64,14 +70,6 @@ export function useSocket(nickname, inputMessage = ref('')) {
     }
   };
 
-  const generateRandomNickname = () => {
-    const adjectives = ['快乐的', '悲伤的', '愤怒的', '兴奋的', '勇敢的'];
-    const animals = ['猫', '狗', '兔子', '老虎', '狮子'];
-    const adjective = adjectives[Math.floor(Math.random() * adjectives.length)];
-    const animal = animals[Math.floor(Math.random() * animals.length)];
-    return `${adjective}${animal}`;
-  };
-
   socket.on('room-full', () => {
     alert('聊天室已满，请稍后再试');
   });
@@ -84,7 +82,8 @@ export function useSocket(nickname, inputMessage = ref('')) {
     scrollToBottom();
   });
 
-  socket.on('user-left', (nickname) => {
+  socket.on('user-left', userInfo => {
+    const { id, nickname, avatar } = userInfo || {} 
     const index = onlineUsers.value.findIndex(u => u.nickname === nickname);
     if (index !== -1) {
       onlineUsers.value.splice(index, 1);
@@ -108,10 +107,6 @@ export function useSocket(nickname, inputMessage = ref('')) {
   socket.on('receive-image', (imageData) => {
     messages.value.push(imageData);
     scrollToBottom();
-  });
-
-  window.addEventListener('beforeunload', () => {
-    socket.emit('leave', { nickname: nickname.value });
   });
 
   return {

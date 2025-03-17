@@ -15,10 +15,11 @@ import { useSocket } from '../../utils/composables/socket';
 import AvatarSelector from './components/AvatarSelector.vue';
 import AvatarLibrary from './components/AvatarLibrary.vue';
 import AvatarCamera from './components/AvatarCamera.vue';
+import { generateRandomNickname } from './../../utils/index';
 
-const nickname = ref('');
+const nickname = ref(generateRandomNickname());
 const router = useRouter();
-const { joinChatroom, isLoggedIn } = useSocket(nickname);
+const { joinChatroom, isLoggedIn } = useSocket();
 
 const defaultAvatars = [
   '/onlineChat1.jpg',
@@ -43,7 +44,10 @@ function getRandomDefaultAvatar() {
 }
 
 const handleLogin = async () => {
-  await joinChatroom();
+  await joinChatroom({
+    nickname: nickname.value,
+    avatar: selectedAvatar.value
+  });
   console.log('isLoggedIn:', isLoggedIn.value); // 调试信息
   if (isLoggedIn.value) {
     router.push('/chatroom'); // 假设聊天页面的路由是 /chatroom
