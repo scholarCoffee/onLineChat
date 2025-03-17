@@ -13,7 +13,6 @@
 
 <script setup>
 import { useRouter } from 'vue-router';
-import { useSocket } from '../../utils/composables/socket';
 
 const router = useRouter();
 const { onlineUsers } = useSocket();

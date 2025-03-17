@@ -30,9 +30,9 @@ io.on('connection', (socket) => {
         }
         const user = { id: socket.id, nickname: nickname, avatar };
         onlineUsers.push(user);
-        socket.broadcast.emit('user-joined', `${nickname} 加入了聊天室`); // 只广播给其他用户
+        socket.broadcast.emit('user-joined', user); // 只广播给其他用户
         io.emit('online-users', onlineUsers);
-        callback({ success: true, userInfo });
+        callback({ success: true, user });
     });
 
     socket.on('send-message', (message) => {

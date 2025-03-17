@@ -11,16 +11,19 @@
 <script setup>
 import { ref, provide } from 'vue';
 import { useRouter } from 'vue-router';
-import { useSocketStore } from '../../stores/socketStore';
+import io from 'socket.io-client';
 import AvatarSelector from './components/AvatarSelector.vue';
 import AvatarLibrary from './components/AvatarLibrary.vue';
 import AvatarCamera from './components/AvatarCamera.vue';
 import { generateRandomNickname } from './../../utils/index';
+import { useOnlineUsersStore } from '../../stores/onlineUsersStore';
+import { userCurrentUserStore } from '../../stores/currentUserStore'
+const onlineUsersStore = useOnlineUsersStore();
+const currentUserInfoStore = userCurrentUserStore();
 
 const nickname = ref(generateRandomNickname());
 const router = useRouter();
-const socketStore = useSocketStore();
-const { joinChatroom } = socketStore;
+const socket = io('http://localhost:3000');
 
 const defaultAvatars = [
   '/onlineChat1.jpg',
@@ -39,19 +42,34 @@ const selectedAvatar = ref(getRandomDefaultAvatar());
 const showLibrary = ref(false);
 const showCamera = ref(false);
 
+socket.on('online-users', (users) => {
+  onlineUsersStore.setOnlineUsers(users || []);
+});
+
 function getRandomDefaultAvatar() {
   const randomIndex = Math.floor(Math.random() * defaultAvatars.length);
   return defaultAvatars[randomIndex];
 }
 
 const handleLogin = async () => {
-  await joinChatroom({
-    nickname: nickname.value,
-    avatar: selectedAvatar.value
+  socket.emit('join', { nickname: nickname.value, avatar: selectedAvatar.value }, (response) => {
+    const { success, user } = response || {}
+    if (success) {
+      const { id, nickname, avatar } = user || {}
+      currentUserInfoStore.setCurrentUserInfo({
+        id,
+        nickname, 
+        avatar
+      })
+      console.log('Joined chatroom successfully'); // 调试信息
+      router.push('/chatroom');
+    } else {
+      console.log('Failed to join chatroom'); // 调试信息
+    }
   });
-  router.push('/chatroom'); // 假设聊天页面的路由是 /chatroom
 };
 
+provide('socket', socket);
 provide('selectedAvatar', selectedAvatar);
 provide('showLibrary', showLibrary);
 provide('showCamera', showCamera);
